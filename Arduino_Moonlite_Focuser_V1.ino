@@ -23,15 +23,15 @@ int powerPin = 4;
 boolean useSleep = true; // true= use sleep pin, false = use enable pin
 //WvB
 */
-int powerPin = 9;
+int powerPin = 7; //STDBY
 boolean useSleep = true; // true= use sleep pin, false = use enable pin
 
 // maximum speed is 160pps which should be OK for most
 // tin can steppers
 #define MAXSPEED 160
 #define SPEEDMULT 3
-
-GearedMotor motor(9,8,7);
+// PWM, AIN1, AIN2
+GearedMotor motor(4,6,5);
 
 #define MAXCOMMAND 8
 
@@ -51,6 +51,8 @@ void setup()
 {
 	Serial.begin(9600);
 	pinMode(powerPin,OUTPUT);
+  //pinMode(13,OUTPUT);
+  //digitalWrite(13,LOW);
 	//wvb motor.setSpeed(MAXSPEED);
 	//wvb motor.setMaxSpeed(MAXSPEED);
 	//wvb motor.setAcceleration(50);
@@ -69,22 +71,34 @@ void setup()
 //
 
 //
+unsigned long time;
+boolean ledon = false;
 
-
-void loop(){
+void loop()
+{
 	if (isRunning) { // only have to do this is stepper is on
 		motor.run();
-		if (motor.stepsToGo() == 0) {
+		if (motor.stepsToGo() == 0) 
+		{
 			//  we have arrived, remove power from motor
 			turnOff();
 		}
 	}
 
+
+// if (ledon && millis() - time > 1000)
+// {
+//    digitalWrite(13, LOW);
+//    ledon = false;
+// }
+
 	// read the command until the terminating # character
 	//WvB each command starts with : and ends with #
 	//WvB the following seems strange, as idx is never set to 0
 	//WvB this code will put all characters received between : and # in the string line
-	while (Serial.available() && !eoc) {
+ 
+	while (Serial.available() && !eoc) 
+	{
 		inChar = Serial.read();
 		if (inChar != '#' && inChar != ':') {
 			line[idx++] = inChar;
@@ -95,9 +109,13 @@ void loop(){
 		else {
 			if (inChar == '#') {
 				eoc = 1;
+//    digitalWrite(13,HIGH);
+//    ledon = true;
+//    time = millis();
 			}
 		}
 	} // end while Serial.available()
+ 
 	// we may not have a complete command yet but there is no character coming in for now and might as well loop in case stepper needs updating
 	// eoc will flag if a full command is there to act upon
 
@@ -125,6 +143,8 @@ void loop(){
 		//code from Quickstop example. This is blocking
 		if (!strcasecmp(cmd, "FQ")) {  // WvB: "FQ" = Halt motor, position is retained
 			//WvB turnOn();
+     //digitalWrite(13,HIGH);
+     turnOff();
 			motor.disableOutputs(); // Stop as fast as possible: sets new target
 			pos = motor.currentPosition();
 			//WvB motor.moveTo(0);  // WvB: is this needed for dc?
@@ -138,7 +158,7 @@ void loop(){
 			turnOn();
 		}
 
-		//Returns the temperature coefficient where XX is a two-digit signed (2’s complement) hex number.
+		//Returns the temperature coefficient where XX is a two-digit signed (2ï¿½s complement) hex number.
 		//hardcoded
 		if (!strcasecmp(cmd, "GC")) {
 			Serial.print("02#");
@@ -184,7 +204,7 @@ void loop(){
 			Serial.print("#");
 		}
 
-		//Returns the current temperature where YYYY is a four-digit signed (2’s complement) hex number.
+		//Returns the current temperature where YYYY is a four-digit signed (2ï¿½s complement) hex number.
 		if (!strcasecmp(cmd, "GT")) {
 			Serial.print("0020#");
 		}
@@ -195,7 +215,7 @@ void loop(){
 			Serial.print("10#");
 		}
 
-		//Set the new temperature coefficient where XX is a two-digit, signed (2’s complement) hex number.
+		//Set the new temperature coefficient where XX is a two-digit, signed (2ï¿½s complement) hex number.
 		if (!strcasecmp(cmd, "SC")) {
 			//do nothing yet
 		}
@@ -249,6 +269,7 @@ void turnOn() {
 		digitalWrite(powerPin, LOW);
 	}
 	isRunning = true;
+  //digitalWrite(13,HIGH);
 }
 void turnOff() {
 	if (useSleep) {
@@ -257,5 +278,5 @@ void turnOff() {
 		digitalWrite(powerPin, HIGH);
 	}
 	isRunning = false;
+  //digitalWrite(13,LOW);
 }
-
